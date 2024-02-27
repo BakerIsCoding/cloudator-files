@@ -1,5 +1,7 @@
 package com.cloudator.files.cloudatorfiles.entity;
 
+import java.util.Date;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -28,10 +30,10 @@ public class File {
     private String fileroute;
 
     @Column(nullable = false)
-    private Integer filedate;
+    private Date filedate;
     
     @Column(nullable = false)
-    private Integer filesize;
+    private float filesize;
     
     @Column(nullable = false)
     private String owner;
