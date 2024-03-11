@@ -30,8 +30,6 @@ public class JsonWebTokenValidator {
     }
     
     public boolean verifyToken(String token) {
-        System.out.println("SECRET_KEY");
-        System.out.println(SECRET_KEY);
         try {
             JWTVerifier verifier = JWT.require(ALGORITHM)
                     .withIssuer("FILESERVER")

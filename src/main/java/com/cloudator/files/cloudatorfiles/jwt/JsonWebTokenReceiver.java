@@ -5,7 +5,6 @@ import org.springframework.stereotype.Component;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
-import org.springframework.beans.factory.annotation.Value;
 
 @Component
 public class JsonWebTokenReceiver {
@@ -24,7 +23,6 @@ public class JsonWebTokenReceiver {
             DecodedJWT jwt = JWT.decode(token);
             
             System.out.println("Información del Token:");
-            System.out.println("Subject: " + jwt.getSubject());
             System.out.println("Issuer: " + jwt.getIssuer());
             System.out.println("Expiration Time: " + jwt.getExpiresAt());
             // Aquí puedes acceder a más información del payload si es necesario

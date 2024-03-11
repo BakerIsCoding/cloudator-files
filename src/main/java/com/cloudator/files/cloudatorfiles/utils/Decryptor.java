@@ -1,14 +1,14 @@
 package com.cloudator.files.cloudatorfiles.utils;
-
+import org.springframework.beans.factory.annotation.Value;
 import org.jasypt.util.text.AES256TextEncryptor;
 
 public class Decryptor {
 
     private AES256TextEncryptor textEncryptor;
 
-    public Decryptor(String secretKey) {
+    public Decryptor(String secretKeyEncryptor) {
         textEncryptor = new AES256TextEncryptor();
-        textEncryptor.setPassword(secretKey);
+        textEncryptor.setPassword(secretKeyEncryptor);
     }
 
     public String decrypt(String encryptedData) {

@@ -33,10 +33,10 @@ public class File {
     private Date filedate;
     
     @Column(nullable = false)
-    private float filesize;
+    private Long filesize;
     
     @Column(nullable = false)
-    private String owner;
+    private Long owner;
     
     @Column(nullable = false)
     private Boolean ispublic;

@@ -1,6 +1,8 @@
 package com.cloudator.files.cloudatorfiles.services;
 
 import com.cloudator.files.cloudatorfiles.utils.Encryptor;
+import org.springframework.beans.factory.annotation.Value;
+
 import com.cloudator.files.cloudatorfiles.utils.Decryptor;
 
 public class SecurityService {
@@ -8,9 +10,9 @@ public class SecurityService {
     private final Encryptor encryptor;
     private final Decryptor decryptor;
 
-    public SecurityService(String secretKey) {
-        this.encryptor = new Encryptor(secretKey);
-        this.decryptor = new Decryptor(secretKey);
+    public SecurityService(String SECRET_KEY_ENCRYPTOR) {
+        this.encryptor = new Encryptor(SECRET_KEY_ENCRYPTOR);
+        this.decryptor = new Decryptor(SECRET_KEY_ENCRYPTOR);
     }
 
     public String encryptData(String data) {

@@ -19,7 +19,7 @@ public class JsonWebTokenManager {
     private Algorithm ALGORITHM;
 
     @PostConstruct
-    public void init(){
+    public void init() {
         ALGORITHM = Algorithm.HMAC256(SECRET_KEY);
     }
 
@@ -31,6 +31,21 @@ public class JsonWebTokenManager {
     public String createToken(Integer id) {
         return JWT.create()
                 .withClaim("id", id)
+                .withExpiresAt(new Date(System.currentTimeMillis() + 3600 * 1000)) // 1 hora de validez
+                .withIssuer("FILESERVER")
+                .sign(ALGORITHM);
+    }
+
+    public String createFileServerUpload(String filenameR, String filetypeR, String filerouteR,
+            String filedateR, String filesizeR, String ownerR, String ispublicR) {
+        return JWT.create()
+                .withClaim("filename", filenameR)
+                .withClaim("filetype", filetypeR)
+                .withClaim("fileroute", filerouteR)
+                .withClaim("filedate", filedateR)
+                .withClaim("filesize", filesizeR)
+                .withClaim("owner", ownerR)
+                .withClaim("ispublic", ispublicR)
                 .withExpiresAt(new Date(System.currentTimeMillis() + 3600 * 1000)) // 1 hora de validez
                 .withIssuer("FILESERVER")
                 .sign(ALGORITHM);
