@@ -1,41 +1,110 @@
 package com.cloudator.files.cloudatorfiles.controllers;
 
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
-
 import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.cloudator.files.cloudatorfiles.services.SecurityService;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+
 @RestController
 public class DownloadFilesController {
-    private final String fileStorageLocation = "E://Eduardo/pruebadescargas/";
 
-    @GetMapping("/download/{fileName}")
-    public ResponseEntity<Resource> downloadFile(@PathVariable String fileName) {
+    private static final String DIRECTORY = "E://Eduardo/pruebadescargas/";
+    //private static final String URL = "https://";
+
+    @Value("${secretencryptor}")
+    private String SECRET_KEY_ENCRYPTOR;
+
+    @PostMapping("/download")
+    public ResponseEntity<String> generateDownloadUrl(
+            @RequestParam("idFile") String idFile,
+            @RequestParam("idUser") String idUser,
+            @RequestParam("idUserManage") String idUserManage,
+            @RequestParam("isPublic") boolean isPublic,
+            HttpServletRequest request) {
+        
+        System.err.println("Entra en Post 1.");
+        SecurityService securityService = new SecurityService(SECRET_KEY_ENCRYPTOR);
+        String userId = securityService.decryptData(idUser);
+        String userManageId = securityService.decryptData(idUserManage);
+
+        if(isPublic || userId == userManageId){
+
+
+            StringBuffer urlBuffer = request.getRequestURL();
+            String uri = request.getRequestURI();
+            String ctx = request.getContextPath();
+            String base = urlBuffer.substring(0, urlBuffer.length() - uri.length() + ctx.length()) + "/";
+            String downloadUrl = base + idUser + "/";
+
+            //String downloadUrl = URL + idUser + "/";
+
+            return ResponseEntity.ok(downloadUrl);
+
+        }else{
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("No autorizado para descargar el archivo");
+        }
+    }
+
+    @PostMapping("/download/{filename:.+}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable String filename, String idUserReturn) throws Exception {
+        System.out.println("Entra en post 2.");
+        System.out.println("filename: " + filename);
+
+        //SecurityService securityService = new SecurityService(SECRET_KEY_ENCRYPTOR);
+
+        //String fileNameDes = securityService.decryptData(filename);
+        //String userId = securityService.decryptData(idUserReturn);
         try {
-            // Prepara el archivo a descargar
-            Path path = Paths.get(fileStorageLocation + fileName);
-            Resource resource = new UrlResource(path.toUri());
+            //Path filePath = Paths.get(DIRECTORY).resolve(userId).resolve(fileNameDes).normalize();
+            System.err.println("Entra en download.");
+            Path filePath = Paths.get(DIRECTORY).resolve(idUserReturn).resolve(filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+            System.out.println("Path: " + filePath);
+            System.out.println("Resource: " + resource);
 
-            if (resource.exists() || resource.isReadable()) {
+            if (resource.exists() && resource.isReadable()) {
+                System.out.println("Entra en resource.");
                 return ResponseEntity.ok()
-                        .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
+                        .body(resource);
+            } else {
+                throw new Exception("Archivo no encontrado " + filename);
+            }
+        } catch (MalformedURLException ex) {
+            throw new Exception("Archivo no encontrado: " + filename + " desconocido.", ex);
+        }
+    }
+
+    @PostMapping("/download/{owner}/{filename:.+}")
+    public ResponseEntity<Resource> downloadFile(@PathVariable Long owner, @PathVariable String filename) {
+        try {
+            Path filePath = Paths.get(DIRECTORY + owner + "/" + filename).normalize();
+            Resource resource = new UrlResource(filePath.toUri());
+
+            if (resource.exists() && resource.isReadable()) {
+                return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + resource.getFilename() + "\"")
                         .body(resource);
             } else {
                 return ResponseEntity.notFound().build();
             }
         } catch (MalformedURLException e) {
-            return ResponseEntity.badRequest().build();
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
-
-

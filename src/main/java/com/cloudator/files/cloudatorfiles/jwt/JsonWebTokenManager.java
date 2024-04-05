@@ -37,7 +37,7 @@ public class JsonWebTokenManager {
     }
 
     public String createFileServerUpload(String filenameR, String filetypeR, String filerouteR,
-            String filedateR, String filesizeR, String ownerR, String ispublicR) {
+            String filedateR, String filesizeR, String ownerR, String ispublicR, String downloadUrl) {
         return JWT.create()
                 .withClaim("filename", filenameR)
                 .withClaim("filetype", filetypeR)
@@ -46,6 +46,7 @@ public class JsonWebTokenManager {
                 .withClaim("filesize", filesizeR)
                 .withClaim("owner", ownerR)
                 .withClaim("ispublic", ispublicR)
+                .withClaim("url", downloadUrl)
                 .withExpiresAt(new Date(System.currentTimeMillis() + 3600 * 1000)) // 1 hora de validez
                 .withIssuer("FILESERVER")
                 .sign(ALGORITHM);
