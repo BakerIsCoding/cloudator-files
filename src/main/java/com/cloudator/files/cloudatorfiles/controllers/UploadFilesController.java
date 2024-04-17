@@ -69,7 +69,7 @@ public class UploadFilesController {
             String directoryPath = filePath.substring(0, filePath.lastIndexOf("\\") + 1);
             String createdToken = jwtManager.createToken(2);
             System.out.println(createdToken);
-            jwtReceiver.mostrarInformacionToken(createdToken);
+            jwtReceiver.recibirToken(createdToken);
             //System.out.println(validated);
             
 
@@ -91,20 +91,20 @@ public class UploadFilesController {
             String ownerR = securityService.encryptData(file.getOwner().toString());
             String ispublicR = securityService.encryptData(file.getIspublic().toString());
 
-            String url = "http://localhost:8080/download/" + ownerR + "/" + filenameR;
+            String url = "http://localhost:8080/download?owner=" + ownerR +"&filename=" + filenameR;
             file.setUrl(url);
             System.out.println("File url: " + file.getUrl());
 
             String downloadUrl = securityService.encryptData(file.getUrl());
-            System.out.println("Donwload Url: " + downloadUrl);
-            
 
             String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR, downloadUrl);
+
+            //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR, url);
             //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR);
 
             System.out.println(jwtFinal);
 
-            jwtReceiver.mostrarInformacionToken(jwtFinal);
+            jwtReceiver.recibirToken(jwtFinal);
 
             return ResponseEntity.ok(jwtFinal);
         } catch (IOException e) {
