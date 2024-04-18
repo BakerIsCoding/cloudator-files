@@ -1,9 +1,11 @@
 package com.cloudator.files.cloudatorfiles.controllers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -25,12 +27,12 @@ import com.cloudator.files.cloudatorfiles.services.SecurityService;
 @RequestMapping("/upload")
 public class UploadFilesController {
 
-    private static final String DIRECTORY = "E://Eduardo/pruebadescargas/"; //Cambiar por "/home/host/srv/cloudfiles/" antes de hacer Commit.
+    private static final String DIRECTORY = "C://hector/pruebadescargas/"; //Cambiar por "/home/host/srv/cloudfiles/" antes de hacer Commit.
 
     @Autowired
     private JsonWebTokenValidator jwtValidator;
 
-    @Autowired
+    @Autowired  
     private JsonWebTokenReceiver jwtReceiver;
 
     @Autowired
@@ -68,9 +70,7 @@ public class UploadFilesController {
 
             String directoryPath = filePath.substring(0, filePath.lastIndexOf("\\") + 1);
             String createdToken = jwtManager.createToken(2);
-            System.out.println(createdToken);
             jwtReceiver.recibirToken(createdToken);
-            //System.out.println(validated);
             
 
             File file = new File();
@@ -91,9 +91,18 @@ public class UploadFilesController {
             String ownerR = securityService.encryptData(file.getOwner().toString());
             String ispublicR = securityService.encryptData(file.getIspublic().toString());
 
-            String url = "http://localhost:8080/download?owner=" + ownerR +"&filename=" + filenameR;
+
+            String decryptedOwner = securityService.decryptData(ownerR);
+            String decryptedFilename = securityService.decryptData(filenameR);
+
+
+            String encodedOwner = Base64.getUrlEncoder().encodeToString(ownerR.getBytes(StandardCharsets.UTF_8));
+            String encodedFilename = Base64.getUrlEncoder().encodeToString(filenameR.getBytes(StandardCharsets.UTF_8));
+
+            String url = "http://localhost:8080/download?owner=" + encodedOwner +"&filename=" + encodedFilename;
+            
+
             file.setUrl(url);
-            System.out.println("File url: " + file.getUrl());
 
             String downloadUrl = securityService.encryptData(file.getUrl());
 
@@ -102,7 +111,6 @@ public class UploadFilesController {
             //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR, url);
             //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR);
 
-            System.out.println(jwtFinal);
 
             jwtReceiver.recibirToken(jwtFinal);
 
