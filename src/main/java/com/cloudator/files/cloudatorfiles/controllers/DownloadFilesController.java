@@ -29,7 +29,7 @@ import jakarta.servlet.http.HttpServletRequest;
 @RestController
 public class DownloadFilesController {
 
-    private static final String DIRECTORY = "C://hector/pruebadescargas/";
+    private static final String DIRECTORY = "/home/host/srv/cloudfiles/";
     // private static final String URL = "https://";
 
     @Autowired

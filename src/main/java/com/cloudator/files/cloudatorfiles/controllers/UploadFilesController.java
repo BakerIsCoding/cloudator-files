@@ -27,7 +27,7 @@ import com.cloudator.files.cloudatorfiles.services.SecurityService;
 @RequestMapping("/upload")
 public class UploadFilesController {
 
-    private static final String DIRECTORY = "C://hector/pruebadescargas/"; //Cambiar por "/home/host/srv/cloudfiles/" antes de hacer Commit.
+    private static final String DIRECTORY = "/home/host/srv/cloudfiles/"; //Cambiar por "/home/host/srv/cloudfiles/" antes de hacer Commit.
 
     @Autowired
     private JsonWebTokenValidator jwtValidator;
@@ -99,7 +99,7 @@ public class UploadFilesController {
             String encodedOwner = Base64.getUrlEncoder().encodeToString(ownerR.getBytes(StandardCharsets.UTF_8));
             String encodedFilename = Base64.getUrlEncoder().encodeToString(filenameR.getBytes(StandardCharsets.UTF_8));
 
-            String url = "http://localhost:8080/download?owner=" + encodedOwner +"&filename=" + encodedFilename;
+            String url = "https://host.cloudator.live/download?owner=" + encodedOwner +"&filename=" + encodedFilename;
             
 
             file.setUrl(url);
@@ -118,6 +118,26 @@ public class UploadFilesController {
         } catch (IOException e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Error al cargar el archivo: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/create-directory")
+    public ResponseEntity<String> createDirectoryForUser(@RequestParam("userId") Long userId) {
+        String baseDirectory = DIRECTORY + userId + "/";
+        String profilePictureDirectory = baseDirectory + "pfp/";
+
+        try {
+            SecurityService securityService = new SecurityService(SECRET_KEY_ENCRYPTOR);
+            String createIdUser = securityService.decryptData(userId.toString());
+
+            //Crea la carpeta base para el usuario.
+            Files.createDirectories(Paths.get(baseDirectory));
+            //Crea la subcarpeta "pfp".
+            Files.createDirectories(Paths.get(profilePictureDirectory));
+            return ResponseEntity.ok("Directorios creados correctamente para el usuario: " + createIdUser);
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Error al crear directorios: " + e.getMessage());
         }
     }
 }
