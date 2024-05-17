@@ -1,6 +1,7 @@
 package com.cloudator.files.cloudatorfiles.controllers;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -9,28 +10,33 @@ import java.util.Base64;
 import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+
 import com.cloudator.files.cloudatorfiles.entity.File;
 import com.cloudator.files.cloudatorfiles.jwt.JsonWebTokenManager;
 import com.cloudator.files.cloudatorfiles.jwt.JsonWebTokenReceiver;
-import com.cloudator.files.cloudatorfiles.jwt.JsonWebTokenValidator;
 import com.cloudator.files.cloudatorfiles.services.SecurityService;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 @RestController
 @RequestMapping("/upload")
 public class UploadFilesController {
-
-    private static final String DIRECTORY = "/home/host/srv/cloudfiles/"; //Cambiar por "/home/host/srv/cloudfiles/" antes de hacer Commit.
-
-    @Autowired
-    private JsonWebTokenValidator jwtValidator;
 
     @Autowired  
     private JsonWebTokenReceiver jwtReceiver;
@@ -40,6 +46,14 @@ public class UploadFilesController {
 
     @Value("${secretencryptor}")
     private String SECRET_KEY_ENCRYPTOR;
+
+    @Value("${directory}")
+    private String directory;
+
+    @Value("${domain}")
+    private String domain;
+
+    private final String DIRECTORY = directory;
 
     @PostMapping("/file")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile uploadedFile,
@@ -64,7 +78,6 @@ public class UploadFilesController {
             String fileName = uploadedFile.getOriginalFilename();
             String fileType = uploadedFile.getContentType();
             String filePath = path.toString();
-            //String[] filePathSplit = filePath.split(fileName);
             Date date = new Date();
             Long fileSize = uploadedFile.getSize();
 
@@ -92,24 +105,17 @@ public class UploadFilesController {
             String ispublicR = securityService.encryptData(file.getIspublic().toString());
 
 
-            String decryptedOwner = securityService.decryptData(ownerR);
-            String decryptedFilename = securityService.decryptData(filenameR);
-
-
             String encodedOwner = Base64.getUrlEncoder().encodeToString(ownerR.getBytes(StandardCharsets.UTF_8));
             String encodedFilename = Base64.getUrlEncoder().encodeToString(filenameR.getBytes(StandardCharsets.UTF_8));
 
-            String url = "https://host.cloudator.live/download?owner=" + encodedOwner +"&filename=" + encodedFilename;
-            
+            //String url = "http://localhost:8080/download?owner=" + encodedOwner +"&filename=" + encodedFilename; //Cambiar por https://host.cloudator.live/
+            String url = domain + "download?owner=" + encodedOwner +"&filename=" + encodedFilename; //Cambiar por http://localhost:8080/download?owner=
 
             file.setUrl(url);
 
             String downloadUrl = securityService.encryptData(file.getUrl());
 
             String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR, downloadUrl);
-
-            //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR, url);
-            //String jwtFinal = jwtManager.createFileServerUpload(filenameR, filetypeR, filerouteR, filedateR, filesizeR, ownerR, ispublicR);
 
 
             jwtReceiver.recibirToken(jwtFinal);
@@ -121,14 +127,24 @@ public class UploadFilesController {
         }
     }
 
+    public String decodeFromUrl(String encodedData) {
+        byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedData);
+        return new String(decodedBytes, StandardCharsets.UTF_8);
+    }
+
     @PostMapping("/create-directory")
-    public ResponseEntity<String> createDirectoryForUser(@RequestParam("userId") Long userId) {
-        String baseDirectory = DIRECTORY + userId + "/";
-        String profilePictureDirectory = baseDirectory + "pfp/";
+    public ResponseEntity<String> createDirectoryForUser(@RequestParam("userId") String userId) {
+        System.out.println("Entra en crear carpeta.");
 
         try {
+            String decodedId = decodeFromUrl(userId);
+
             SecurityService securityService = new SecurityService(SECRET_KEY_ENCRYPTOR);
-            String createIdUser = securityService.decryptData(userId.toString());
+            String createIdUser = securityService.decryptData(decodedId);
+            //String createIdUser = userId.toString();
+            System.out.println("Entra en try.");
+            String baseDirectory = DIRECTORY + createIdUser + "/";
+            String profilePictureDirectory = baseDirectory + "pfp/";
 
             //Crea la carpeta base para el usuario.
             Files.createDirectories(Paths.get(baseDirectory));
@@ -140,4 +156,50 @@ public class UploadFilesController {
             return ResponseEntity.internalServerError().body("Error al crear directorios: " + e.getMessage());
         }
     }
+
+    @PostMapping("/{owner}/pfpic")
+    public ResponseEntity<String> uploadProfilePicture(@RequestBody byte[] uploadedFile, @RequestHeader("Content-Type") String contentType, @PathVariable("owner") String owner) {
+        if (uploadedFile.length == 0) {
+            return ResponseEntity.badRequest().body("Seleccione una imagen para cargar.");
+        }
+
+        if (!"application/octet-stream".equals(contentType)) {
+            return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE).body("Formato de archivo no soportado. Solo se permiten archivos octet-stream.");
+        }
+
+        try {
+            String ownerDirectory = DIRECTORY + owner + "/pfp/";
+            Path path = Paths.get(ownerDirectory + "profile.jpg");
+            Files.createDirectories(path.getParent());  // Crear directorios si no existen
+            Files.write(path, uploadedFile);
+
+            String imageUrl = domain + "upload/" + owner + "/pfp/profile.jpg";
+            return ResponseEntity.ok(imageUrl);
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body("Error al cargar la imagen de perfil: " + e.getMessage());
+        }
+    }
+
+
+    @GetMapping("/{owner}/pfp/profile.jpg")
+    public ResponseEntity<Object> serveProfileImage(@PathVariable String owner, HttpServletRequest request) {
+
+        try {
+            String ownerDirectory = DIRECTORY + owner + "/pfp/";
+            Path path = Paths.get(ownerDirectory + "profile.jpg");
+            Resource imgFile = new UrlResource(path.toUri());
+
+            if (imgFile.exists() || imgFile.isReadable()) {
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + imgFile.getFilename() + "\"")
+                        .contentType(MediaType.IMAGE_JPEG)
+                        .body(imgFile);
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (MalformedURLException e) {
+            return ResponseEntity.internalServerError().body("Error al servir la imagen: " + e.getMessage());
+        }
+    }
+
 }

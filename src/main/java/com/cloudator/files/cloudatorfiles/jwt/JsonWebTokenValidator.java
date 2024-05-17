@@ -37,7 +37,6 @@ public class JsonWebTokenValidator {
             DecodedJWT jwt = verifier.verify(token);
             return true;
         } catch (JWTVerificationException exception) {
-            // En un caso real, aquí podrías loguear o manejar el error de verificación
             return false;
         }
     }

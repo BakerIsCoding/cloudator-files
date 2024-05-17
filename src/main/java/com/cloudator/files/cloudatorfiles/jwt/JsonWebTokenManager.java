@@ -13,7 +13,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class JsonWebTokenManager {
 
-    // Asegúrate de usar una clave secreta segura y única para tu aplicación
     @Value("${secretkey}")
     private String SECRET_KEY;
     private Algorithm ALGORITHM;
