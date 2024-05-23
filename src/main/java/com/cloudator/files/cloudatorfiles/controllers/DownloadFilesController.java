@@ -33,8 +33,6 @@ public class DownloadFilesController {
     @Value("${secretencryptor}")
     private String SECRET_KEY_ENCRYPTOR;
 
-    private final String DIRECTORY = directory;
-
     public String decodeFromUrl(String encodedData) {
         byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedData);
         return new String(decodedBytes, StandardCharsets.UTF_8);
@@ -53,7 +51,7 @@ public class DownloadFilesController {
         String filenameR = securityService.decryptData(decodedFilename);
 
         try {
-            Path filePath = Paths.get(DIRECTORY + idOwner + "/" + filenameR).normalize();
+            Path filePath = Paths.get(directory + idOwner + "/" + filenameR).normalize();
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {

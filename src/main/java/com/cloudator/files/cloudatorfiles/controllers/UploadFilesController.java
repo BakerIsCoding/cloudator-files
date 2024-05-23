@@ -53,8 +53,6 @@ public class UploadFilesController {
     @Value("${domain}")
     private String domain;
 
-    private final String DIRECTORY = directory;
-
     @PostMapping("/file")
     public ResponseEntity<String> uploadFile(@RequestParam("file") MultipartFile uploadedFile,
             @RequestParam("owner") Long owner) {
@@ -65,13 +63,19 @@ public class UploadFilesController {
 
             SecurityService securityService = new SecurityService(SECRET_KEY_ENCRYPTOR);
 
-            String ownerDirectory = DIRECTORY + owner + "/";
+            String ownerDirectory = directory + owner + "/";
             //Construye la ruta completa donde se guardará el archivo.
             Path path = Paths.get(ownerDirectory + uploadedFile.getOriginalFilename());
 
             if (!Files.exists(path.getParent())) {
                 Files.createDirectories(path.getParent());
             }
+
+            //Verifica si el archivo ya existe.
+            if (Files.exists(path)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT).body("El archivo ya existe.");
+            }
+            
             //Guarda el archivo en el sistema de archivos.
             Files.write(path, uploadedFile.getBytes());
 
@@ -85,7 +89,6 @@ public class UploadFilesController {
             String createdToken = jwtManager.createToken(2);
             jwtReceiver.recibirToken(createdToken);
             
-
             File file = new File();
             file.setFilename(fileName);
             file.setFiletype(fileType);
@@ -95,7 +98,6 @@ public class UploadFilesController {
             file.setOwner(owner);
             file.setIspublic(true);
             
-
             String filenameR = securityService.encryptData(file.getFilename());
             String filetypeR = securityService.encryptData(file.getFiletype());
             String filerouteR = securityService.encryptData(file.getFileroute());
@@ -104,11 +106,9 @@ public class UploadFilesController {
             String ownerR = securityService.encryptData(file.getOwner().toString());
             String ispublicR = securityService.encryptData(file.getIspublic().toString());
 
-
             String encodedOwner = Base64.getUrlEncoder().encodeToString(ownerR.getBytes(StandardCharsets.UTF_8));
             String encodedFilename = Base64.getUrlEncoder().encodeToString(filenameR.getBytes(StandardCharsets.UTF_8));
 
-            //String url = "http://localhost:8080/download?owner=" + encodedOwner +"&filename=" + encodedFilename; //Cambiar por https://host.cloudator.live/
             String url = domain + "download?owner=" + encodedOwner +"&filename=" + encodedFilename; //Cambiar por http://localhost:8080/download?owner=
 
             file.setUrl(url);
@@ -143,7 +143,7 @@ public class UploadFilesController {
             String createIdUser = securityService.decryptData(decodedId);
             //String createIdUser = userId.toString();
             System.out.println("Entra en try.");
-            String baseDirectory = DIRECTORY + createIdUser + "/";
+            String baseDirectory = directory + createIdUser + "/";
             String profilePictureDirectory = baseDirectory + "pfp/";
 
             //Crea la carpeta base para el usuario.
@@ -168,7 +168,7 @@ public class UploadFilesController {
         }
 
         try {
-            String ownerDirectory = DIRECTORY + owner + "/pfp/";
+            String ownerDirectory = directory + owner + "/pfp/";
             Path path = Paths.get(ownerDirectory + "profile.jpg");
             Files.createDirectories(path.getParent());  // Crear directorios si no existen
             Files.write(path, uploadedFile);
@@ -185,7 +185,7 @@ public class UploadFilesController {
     public ResponseEntity<Object> serveProfileImage(@PathVariable String owner, HttpServletRequest request) {
 
         try {
-            String ownerDirectory = DIRECTORY + owner + "/pfp/";
+            String ownerDirectory = directory + owner + "/pfp/";
             Path path = Paths.get(ownerDirectory + "profile.jpg");
             Resource imgFile = new UrlResource(path.toUri());
 
