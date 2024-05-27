@@ -19,10 +19,10 @@ public class UploadFilesServiceImpl implements IUploadFilesService {
             String fileOriginalName = file.getOriginalFilename();
             byte[] bytes = file.getBytes();
             long fileSize = file.getSize();
-            long maxFileSize = 100 * 1024 * 1024;
+            long maxFileSize = 10000 * 1024 * 1024;
 
             if(fileSize > maxFileSize){
-                return "El tamaño máximo del fichero debe de ser 100 MB";
+                return "El tamaño máximo del fichero debe de ser 10 GB";
             }
 
             //String fileExtension = fileOriginalName.substring(fileOriginalName.lastIndexOf(".") +1);
